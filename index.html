@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tensão Arterial</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#1f2937}
+header{background:#b71c1c;color:white;padding:18px 20px;font-size:22px;font-weight:700}
+main{max-width:760px;margin:auto;padding:18px}
+.card{background:white;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px #0001}
+h2{margin:0 0 16px;font-size:20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{font-size:14px;font-weight:600;display:block}.full{grid-column:1/-1}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:9px;font-size:16px;margin-top:6px}
+textarea{min-height:90px;resize:vertical}
+button{border:0;border-radius:10px;padding:13px 18px;font-size:16px;font-weight:700;cursor:pointer}
+.primary{background:#b71c1c;color:white}.secondary{background:#e5e7eb;color:#111827}
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:12px}.menu button{background:white;border:1px solid #ddd;text-align:left}
+.status{padding:10px;border-radius:9px;background:#ecfdf5;color:#166534;display:none;margin-top:12px}
+@media(max-width:600px){.grid,.menu{grid-template-columns:1fr}}
+
+.chart-wrap{overflow-x:auto;border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:8px}
+#chartSvg{display:block;min-width:680px;width:100%;height:390px}
+.chart-legend{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0;font-size:14px;font-weight:600}
+.legend-item{display:flex;align-items:center;gap:6px}.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.chart-info{margin-top:10px;font-size:14px;color:#4b5563}
+
+.chart-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.summary-box{border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff;text-align:center}
+.summary-title{font-size:12px;color:#6b7280}.summary-value{font-size:19px;font-weight:700;margin-top:4px}
+.pulse-title{font-weight:700;margin:5px 0 5px}
+@media(max-width:700px){.chart-summary{grid-template-columns:repeat(2,1fr)}}
+
+.menu-title{margin:0}.report-head{border-bottom:2px solid #b71c1c;padding-bottom:12px;margin-bottom:14px}
+.report-title{font-size:22px;font-weight:700}.report-sub{font-size:14px;color:#6b7280;margin-top:5px}
+.report-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.report-box{border:1px solid #e5e7eb;border-radius:10px;padding:10px;text-align:center}
+.report-box small{display:block;color:#6b7280}.report-box strong{display:block;font-size:18px;margin-top:4px}
+.table-wrap{overflow-x:hidden;margin-top:15px}
+.report-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.report-table th:nth-child(1),.report-table td:nth-child(1){width:10%}
+.report-table th:nth-child(2),.report-table td:nth-child(2){width:9%}
+.report-table th:nth-child(3),.report-table td:nth-child(3){width:10%}
+.report-table th:nth-child(4),.report-table td:nth-child(4){width:10%}
+.report-table th:nth-child(5),.report-table td:nth-child(5){width:8%}
+.report-table th:nth-child(6),.report-table td:nth-child(6){width:10%}
+.report-table th:nth-child(7),.report-table td:nth-child(7){width:10%}
+.report-table th:nth-child(8),.report-table td:nth-child(8){width:33%}
+.report-table th{background:#f1f5f9;text-align:left;padding:7px 5px;border-bottom:2px solid #cbd5e1}
+.report-table td{padding:7px 5px;border-bottom:1px solid #e5e7eb;overflow-wrap:anywhere;white-space:normal}
+.report-table tfoot td{font-weight:700;background:#f8fafc}
+@media(max-width:700px){.report-summary{grid-template-columns:repeat(2,1fr)}}
+@media print{
+  header,.menu,#medicao,#pessoas,#historico,#grafico,#relatorio .report-filter,.no-print{display:none!important}
+  body{background:white}.card{box-shadow:none;margin:0;padding:0}.report-table{font-size:11px;table-layout:fixed}.report-table th,.report-table td{padding:6px 4px}.report-table td:nth-child(1),.report-table td:nth-child(2){white-space:nowrap;overflow:visible}
+}
+.hide-on-report{display:none!important}
+
+.report-chart-wrap{margin:12px 0 16px;border:1px solid #e5e7eb;border-radius:10px;padding:8px;background:#fff}
+.report-chart-title{font-size:15px;font-weight:700;margin:2px 0 4px}
+.report-chart-wrap svg{width:100%;height:auto;display:block}
+@media print{
+  .report-chart-wrap{border:0;padding:0;margin:12px 0 14px}
+  .report-chart-title{font-size:13px}
+}
+
+.person-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 4px;border-bottom:1px solid #e5e7eb}
+.person-info{min-width:0}
+.person-name{font-size:16px;font-weight:600}
+.person-count{font-size:12px;color:#6b7280;margin-top:3px}
+.delete-person{display:inline-block!important;background:#c51b1b!important;color:#fff!important;border:0!important;border-radius:7px!important;padding:8px 12px!important;font-weight:700!important;cursor:pointer!important;white-space:nowrap!important}
+.delete-person:hover{background:#a91414!important}
+</style>
+</head>
+<body>
+<header>🩺 Tensão Arterial</header>
+<main>
+<div class="card">
+<h2 class="menu-title">Menu Principal</h2>
+<div class="menu">
+<button onclick="show('pessoas')">👤 Pessoas</button>
+<button onclick="show('medicao')">➕ Nova Medição</button>
+<button onclick="show('historico')">📋 Histórico</button>
+<button onclick="show('grafico')">📈 Gráfico</button>
+<button onclick="show('relatorio')">📄 Relatório</button>
+</div>
+</div>
+
+<section id="medicao" class="card">
+<h2>Nova Medição</h2>
+<form id="form">
+<div class="grid">
+<div class="full"><label>Nome da pessoa
+<input id="nome" required placeholder="Ex.: Manuel Fernandes"></label></div>
+<div><label>Data<input id="data" type="date" required></label></div>
+<div><label>Hora<input id="hora" type="time" required></label></div>
+<div><label>Tensão Sistólica<input id="sis" type="number" min="40" max="300" required></label></div>
+<div><label>Tensão Diastólica<input id="dia" type="number" min="20" max="200" required></label></div>
+<div><label>Pulso<input id="pulso" type="number" min="20" max="250" required></label></div>
+<div><label>Braço<select id="braco"><option>Esquerdo</option><option>Direito</option></select></label></div>
+<div><label>Momento<select id="momento"><option>Manhã</option><option>Meio-dia</option><option>Tarde</option><option>Noite</option><option>Outro</option></select></label></div>
+<div class="full"><label>Observações<textarea id="obs" placeholder="Observações..."></textarea></label></div>
+</div>
+<br><button class="primary" type="submit">Guardar Medição</button>
+<button class="secondary" type="button" onclick="document.getElementById('form').reset();setDefaults()">Limpar</button>
+<div id="status" class="status">Medição guardada neste dispositivo.</div>
+</form>
+</section>
+
+<section id="pessoas" class="card" style="display:none">
+<h2>👤 Pessoas</h2>
+<div class="grid">
+<div class="full"><label>Nome da nova pessoa
+<input id="novaPessoa" type="text" placeholder="Ex.: Maria Silva"></label></div>
+</div>
+<br>
+<button class="primary" type="button" onclick="adicionarPessoa()">➕ Adicionar Pessoa</button>
+<div id="peopleStatus" class="status" style="display:none">Pessoa adicionada com sucesso.</div>
+<div id="peopleList" style="margin-top:14px">Ainda não existem pessoas registadas.</div>
+</section>
+
+<section id="grafico" class="card" style="display:none">
+<h2>📈 Gráfico de Tensão Arterial</h2>
+<div class="grid">
+<div class="full"><label>Pessoa
+<select id="graficoPessoa"><option value="">Todas as pessoas</option></select></label></div>
+<div><label>Data inicial<input id="graficoDataInicial" type="date"></label></div>
+<div><label>Data final<input id="graficoDataFinal" type="date"></label></div>
+</div>
+<br>
+<button class="primary" type="button" onclick="desenharGrafico()">📈 Ver Gráfico</button>
+<button class="secondary" type="button" onclick="limparGrafico()">Limpar</button>
+<div class="chart-legend">
+<span class="legend-item"><span class="dot" style="background:#6b8fc1"></span>Sistólica</span>
+<span class="legend-item"><span class="dot" style="background:#35a86b"></span>Diastólica</span>
+<span class="legend-item"><span class="dot" style="background:#d83b3b"></span>Pulso</span>
+</div>
+<div id="chartResumo" class="chart-summary"></div>
+<div class="chart-wrap"><svg id="chartSvg" viewBox="0 0 1000 460" preserveAspectRatio="xMidYMid meet"></svg></div>
+<div id="chartInfo" class="chart-info"></div>
+</section>
+
+<section id="historico" class="card" style="display:none">
+<h2>📋 Histórico</h2>
+<div class="grid">
+<div class="full"><label>Pessoa
+<select id="filtroPessoa"><option value="">Todas as pessoas</option></select></label></div>
+<div><label>Data inicial<input id="dataInicial" type="date"></label></div>
+<div><label>Data final<input id="dataFinal" type="date"></label></div>
+</div>
+<br>
+<button class="primary" type="button" onclick="filtrarHistorico()">🔎 Pesquisar</button>
+<button class="secondary" type="button" onclick="limparFiltro()">Limpar</button>
+<div id="historyList" style="margin-top:14px">Ainda não existem medições.</div>
+</section>
+
+<section id="relatorio" class="card" style="display:none">
+<div class="report-filter">
+<h2>📄 Relatório de Tensão Arterial</h2>
+<div class="grid">
+<div class="full"><label>Nome
+<select id="relatorioPessoa"><option value="">Todas as pessoas</option></select></label></div>
+<div><label>Data inicial<input id="relatorioDataInicial" type="date"></label></div>
+<div><label>Data final<input id="relatorioDataFinal" type="date"></label></div>
+</div>
+<br>
+<button class="primary" type="button" onclick="gerarRelatorio()">📄 Gerar Relatório</button>
+<button class="secondary" type="button" onclick="imprimirRelatorio()">🖨️ Imprimir / PDF</button>
+<button class="secondary" type="button" onclick="limparRelatorio()">Limpar</button>
+</div>
+
+<div id="reportContent" style="margin-top:18px;display:none">
+<div class="report-head">
+  <div class="report-title">RELATÓRIO DE TENSÃO ARTERIAL</div>
+  <div id="reportSub" class="report-sub"></div>
+</div>
+<div id="reportSummary" class="report-summary"></div>
+<div class="report-chart-wrap">
+  <div class="report-chart-title">Evolução da tensão arterial</div>
+  <svg id="reportChartSvg" viewBox="0 0 1000 460" preserveAspectRatio="xMidYMid meet"></svg>
+</div>
+<div class="table-wrap">
+<table class="report-table">
+<thead><tr><th>Data</th><th>Hora</th><th>Sistólica</th><th>Diastólica</th><th>Pulso</th><th>Braço</th><th>Momento</th><th>Observações</th></tr></thead>
+<tbody id="reportBody"></tbody>
+<tfoot id="reportFoot"></tfoot>
+</table>
+</div>
+</div>
+</section>
+
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function setDefaults(){let d=new Date();$('data').value=d.toISOString().slice(0,10);$('hora').value=d.toTimeString().slice(0,5)}
+function data(){return JSON.parse(localStorage.getItem('tensao_registos')||'[]')}
+function pessoas(){return JSON.parse(localStorage.getItem('tensao_pessoas')||'[]')}
+function savePessoas(a){localStorage.setItem('tensao_pessoas',JSON.stringify(a))}
+function todosNomes(){
+  let nomes=[...pessoas(),...data().map(x=>x.nome)].filter(Boolean);
+  return [...new Set(nomes)].sort((a,b)=>a.localeCompare(b,'pt'));
+}
+
+function eliminarPessoa(nome){
+  let regs=data().filter(x=>x.nome===nome);
+  if(regs.length){
+    let ok=confirm(`Esta pessoa tem ${regs.length} medição(ões) registada(s).\n\nPretende eliminar ${nome} e TODAS as suas medições?`);
+    if(!ok)return;
+  }else{
+    let ok=confirm(`Tem a certeza que pretende eliminar ${nome}?`);
+    if(!ok)return;
+  }
+  savePessoas(pessoas().filter(x=>x!==nome));
+  save(data().filter(x=>x.nome!==nome));
+  renderPeople();
+  preencherFiltroPessoa();
+  preencherGraficoPessoa();
+  preencherRelatorioPessoa();
+  renderHistory();
+  alert(`${nome} foi eliminada.`);
+}
+
+function adicionarPessoa(){
+  let el=$('novaPessoa'), nome=(el.value||'').trim();
+  if(!nome){alert('Introduza o nome da pessoa.');el.focus();return;}
+  let ps=pessoas();
+  if(ps.some(x=>x.toLocaleLowerCase()===nome.toLocaleLowerCase())){
+    alert('Essa pessoa já existe.');el.focus();return;
+  }
+  ps.push(nome);savePessoas(ps);el.value='';
+  $('peopleStatus').style.display='block';
+  setTimeout(()=>$('peopleStatus').style.display='none',2200);
+  renderPeople();preencherFiltroPessoa();preencherGraficoPessoa();preencherRelatorioPessoa();
+}
+
+function save(a){localStorage.setItem('tensao_registos',JSON.stringify(a))}
+function show(id){
+  ['medicao','pessoas','historico','grafico','relatorio'].forEach(x=>$(x).style.display=x===id?'block':'none');
+  if(id!=='relatorio'){document.querySelector('.menu-title')?.classList.remove('hide-on-report');} if(id==='pessoas')renderPeople();
+  if(id==='historico'){preencherFiltroPessoa();renderHistory();}
+  if(id==='grafico'){preencherGraficoPessoa();}
+  if(id==='relatorio'){preencherRelatorioPessoa(); document.querySelector('.menu-title')?.classList.add('hide-on-report');}
+  window.scrollTo(0,0);
+}
+$('form').addEventListener('submit',e=>{e.preventDefault();let nome=$('nome').value.trim();let a=data();a.push({nome:nome,data:$('data').value,hora:$('hora').value,sis:+$('sis').value,dia:+$('dia').value,pulso:+$('pulso').value,braco:$('braco').value,momento:$('momento').value,obs:$('obs').value});save(a);let ps=pessoas();if(nome&&!ps.some(x=>x.toLocaleLowerCase()===nome.toLocaleLowerCase())){ps.push(nome);savePessoas(ps)}$('status').style.display='block';setTimeout(()=>$('status').style.display='none',2500);renderPeople();preencherFiltroPessoa();preencherGraficoPessoa();preencherRelatorioPessoa();renderHistory()})
+function renderPeople(){
+  const ps=todosNomes(), el=$('peopleList');
+  if(!el)return;
+  if(!ps.length){
+    el.innerHTML='<div style="padding:12px 0;color:#6b7280">Ainda não existem pessoas registadas.</div>';
+    return;
+  }
+  el.innerHTML=ps.map(nome=>{
+    const n=data().filter(x=>x.nome===nome).length;
+    return `<div class="person-row">
+      <div class="person-info">
+        <div class="person-name">👤 ${esc(nome)}</div>
+        <div class="person-count">${n} medição(ões)</div>
+      </div>
+      <button class="delete-person" type="button" onclick='eliminarPessoa(${JSON.stringify(nome)})'>🗑️ Eliminar</button>
+    </div>`;
+  }).join('');
+}
+
+function preencherFiltroPessoa(){
+  let nomes=todosNomes();
+  let sel=$('filtroPessoa');
+  if(!sel)return;
+  sel.innerHTML='<option value="">Todas as pessoas</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
+}
+function dataISO(s){
+  let p=s.split('/');
+  return p.length===3 ? `${p[2]}-${String(p[1]).padStart(2,'0')}-${String(p[0]).padStart(2,'0')}` : s;
+}
+function filtrarHistorico(){
+  let pessoa=$('filtroPessoa').value;
+  let ini=$('dataInicial').value;
+  let fim=$('dataFinal').value;
+  let a=data().filter(x=>
+    (!pessoa || x.nome===pessoa) &&
+    (!ini || dataISO(x.data)>=ini) &&
+    (!fim || dataISO(x.data)<=fim)
+  ).slice().reverse();
+  $('historyList').innerHTML=a.length?a.map(x=>`<div style="padding:12px;border-bottom:1px solid #eee"><b>${x.nome}</b><br>${x.data} ${x.hora} — <b>${x.sis}/${x.dia}</b> mmHg — Pulso <b>${x.pulso}</b><br>Braço: ${x.braco} · ${x.momento}${x.obs?' · '+x.obs:''}</div>`).join(''):'Não existem medições para os critérios selecionados.';
+}
+function limparFiltro(){
+  $('filtroPessoa').value=''; $('dataInicial').value=''; $('dataFinal').value=''; renderHistory();
+}
+
+function preencherGraficoPessoa(){
+  let nomes=todosNomes();
+  let sel=$('graficoPessoa'); if(!sel)return;
+  let atual=sel.value;
+  sel.innerHTML='<option value="">Todas as pessoas</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(nomes.includes(atual)) sel.value=atual;
+}
+function limparGrafico(){
+  $('graficoPessoa').value=''; $('graficoDataInicial').value=''; $('graficoDataFinal').value='';
+  $('chartSvg').innerHTML=''; $('chartInfo').textContent='';
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function desenharGrafico(){
+  let pessoa=$('graficoPessoa').value, ini=$('graficoDataInicial').value, fim=$('graficoDataFinal').value;
+  let a=data().filter(x=>
+    (!pessoa || x.nome===pessoa) &&
+    (!ini || dataISO(x.data)>=ini) &&
+    (!fim || dataISO(x.data)<=fim)
+  ).sort((a,b)=>(dataISO(a.data)+a.hora).localeCompare(dataISO(b.data)+b.hora));
+
+  let svg=$('chartSvg');
+  svg.innerHTML='';
+  if(!a.length){
+    $('chartResumo').innerHTML='';
+    $('chartInfo').textContent='Não existem medições para os critérios selecionados.';
+    return;
+  }
+
+  const avg=k=>a.reduce((s,r)=>s+Number(r[k]),0)/a.length;
+  const min=k=>Math.min(...a.map(r=>Number(r[k])));
+  const max=k=>Math.max(...a.map(r=>Number(r[k])));
+  $('chartResumo').innerHTML=`
+    <div class="summary-box"><div class="summary-title">Medições</div><div class="summary-value">${a.length}</div></div>
+    <div class="summary-box"><div class="summary-title">Média tensão</div><div class="summary-value">${Math.round(avg('sis'))}/${Math.round(avg('dia'))} mmHg</div></div>
+    <div class="summary-box"><div class="summary-title">Média pulso</div><div class="summary-value">${Math.round(avg('pulso'))} bpm</div></div>
+    <div class="summary-box"><div class="summary-title">Intervalo sistólica</div><div class="summary-value">${min('sis')}-${max('sis')}</div></div>`;
+
+  let W=1000,H=460,L=125,R=36,T=34,B=72;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  let x0=L,x1=W-R,y0=T,y1=H-B;
+  let ymin=60,ymax=180, pymin=40,pymax=100;
+  const X=i=>a.length===1?(x0+x1)/2:x0+i*(x1-x0)/(a.length-1);
+  const Y=v=>y1-(v-ymin)*(y1-y0)/(ymax-ymin);
+  const Yp=v=>y1-(v-pymin)*(y1-y0)/(pymax-pymin);
+  const line=(xa,ya,xb,yb,cls)=>`<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" class="${cls}"/>`;
+
+  let s=`<style>
+    .axis{stroke:#8b95a1;stroke-width:1.2}.gridline{stroke:#e5e7eb;stroke-width:1}
+    .sline{fill:none;stroke:#6b8fc1;stroke-width:3}.dline{fill:none;stroke:#35a86b;stroke-width:3}
+    .pline{fill:none;stroke:#d83b3b;stroke-width:3;stroke-dasharray:8 6}
+    .st{fill:#6b8fc1;stroke:#fff;stroke-width:2}.dt{fill:#35a86b;stroke:#fff;stroke-width:2}.pt{fill:#d83b3b;stroke:#fff;stroke-width:2}
+    .lab{font:13px Arial;fill:#374151}.val{font:bold 12px Arial;fill:#111827}.date{font:12px Arial;fill:#374151}
+    .axis-title{font:bold 13px Arial;fill:#4b5563}.pulse-axis{fill:#d83b3b}
+  </style>`;
+
+  // Left axis: blood pressure
+  for(let v=60;v<=180;v+=20){
+    let y=Y(v);
+    s+=line(x0,y,x1,y,'gridline')+`<text x="${x0-12}" y="${y+4}" text-anchor="end" class="lab">${v}</text>`;
+  }
+  // Right axis: pulse
+  for(let v=40;v<=100;v+=10){
+    let y=Yp(v);
+    s+=`<text x="${x0-68}" y="${y+4}" text-anchor="end" class="lab pulse-axis">${v}</text>`;
+  }
+  s+=line(x0,y0,x0,y1,'axis')+line(x1,y0,x1,y1,'axis')+line(x0,y1,x1,y1,'axis');
+  s+=`<text x="82" y="${(y0+y1)/2}" transform="rotate(-90 82 ${(y0+y1)/2})" text-anchor="middle" class="axis-title">mmHg</text>`;
+  s+=`<text x="30" y="${(y0+y1)/2}" transform="rotate(-90 30 ${(y0+y1)/2})" text-anchor="middle" class="axis-title pulse-axis">bpm</text>`;
+
+  function path(key,yy){return a.map((r,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+yy(r[key]).toFixed(1)).join(' ')}
+  s+=`<path d="${path('sis',Y)}" class="sline"/>
+      <path d="${path('dia',Y)}" class="dline"/>
+      <path d="${path('pulso',Yp)}" class="pline"/>`;
+
+  a.forEach((r,i)=>{
+    let x=X(i), ys=Y(r.sis), yd=Y(r.dia), yp=Yp(r.pulso);
+
+    s+=`<circle cx="${x}" cy="${ys}" r="5" class="st"/>
+        <text x="${x}" y="${ys-12}" text-anchor="middle" class="val">${r.sis}</text>`;
+
+    s+=`<rect x="${x-5}" y="${yd-5}" width="10" height="10" rx="2" class="dt"/>
+        <text x="${x}" y="${yd+20}" text-anchor="middle" class="val">${r.dia}</text>`;
+
+    // Pulse remains integrated but uses its own right-hand bpm scale.
+    // Labels are slightly offset to avoid collisions with systolic labels.
+    let pdy=(Math.abs(yp-ys)<28)?18:-12;
+    let pdx=(i%2===0)?-8:8;
+    s+=`<circle cx="${x}" cy="${yp}" r="5" class="pt"/>
+        <text x="${x+pdx}" y="${yp+pdy}" text-anchor="${pdx<0?'end':'start'}" class="val">${r.pulso}</text>`;
+
+    let parts=r.data.split('/').map(Number);
+    let label=parts.length===3?`${String(parts[0]).padStart(2,'0')}/${String(parts[1]).padStart(2,'0')}`:r.data;
+    s+=`<text x="${x}" y="${y1+30}" text-anchor="middle" class="date">${label}</text>`;
+  });
+
+  svg.innerHTML=s;
+  $('chartInfo').textContent=`${a.length} medição(ões)${pessoa?' — '+pessoa:''}${ini||fim?' — período selecionado':''}. Média da sistólica: ${Math.round(avg('sis'))} mmHg; diastólica: ${Math.round(avg('dia'))} mmHg; pulso: ${Math.round(avg('pulso'))} bpm.`;
+}
+
+
+function preencherRelatorioPessoa(){
+  let nomes=todosNomes();
+  let sel=$('relatorioPessoa'); if(!sel)return;
+  let atual=sel.value;
+  sel.innerHTML='<option value="">Todas as pessoas</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(nomes.includes(atual))sel.value=atual;
+}
+function limparRelatorio(){
+  $('relatorioPessoa').value='';$('relatorioDataInicial').value='';$('relatorioDataFinal').value='';
+  $('reportContent').style.display='none';$('reportBody').innerHTML='';$('reportFoot').innerHTML='';$('reportSummary').innerHTML='';$('reportSub').textContent='';
+}
+
+function desenharGraficoRelatorio(a){
+  let svg=$('reportChartSvg');
+  if(!svg)return;
+  svg.innerHTML='';
+  if(!a.length)return;
+
+  let W=1000,H=460,L=125,R=36,T=46,B=72;
+  let x0=L,x1=W-R,y0=T,y1=H-B;
+  let ymin=60,ymax=180,pymin=40,pymax=100;
+  const X=i=>a.length===1?(x0+x1)/2:x0+i*(x1-x0)/(a.length-1);
+  const Y=v=>y1-(v-ymin)*(y1-y0)/(ymax-ymin);
+  const Yp=v=>y1-(v-pymin)*(y1-y0)/(pymax-pymin);
+  const line=(xa,ya,xb,yb,cls)=>`<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" class="${cls}"/>`;
+
+  let s=`<style>
+    .raxis{stroke:#8b95a1;stroke-width:1.2}.rgrid{stroke:#e5e7eb;stroke-width:1}
+    .rs{fill:none;stroke:#6b8fc1;stroke-width:3}.rd{fill:none;stroke:#35a86b;stroke-width:3}
+    .rp{fill:none;stroke:#d83b3b;stroke-width:3;stroke-dasharray:8 6}
+    .rst{fill:#6b8fc1;stroke:#fff;stroke-width:2}.rdt{fill:#35a86b;stroke:#fff;stroke-width:2}.rpt{fill:#d83b3b;stroke:#fff;stroke-width:2}
+    .rlab{font:13px Arial;fill:#374151}.rval{font:bold 12px Arial;fill:#111827}.rdate{font:12px Arial;fill:#374151}.rpulse{fill:#d83b3b}
+    .raxis-title{font:bold 13px Arial;fill:#4b5563}
+  </style>`;
+
+  // Legend
+  s+=`<line x1="${x0}" y1="20" x2="${x0+24}" y2="20" class="rs"/>
+      <circle cx="${x0+12}" cy="20" r="4" class="rst"/>
+      <text x="${x0+30}" y="24" class="rlab">Sistólica</text>
+      <line x1="${x0+150}" y1="20" x2="${x0+174}" y2="20" class="rd"/>
+      <rect x="${x0+157}" y="15" width="10" height="10" rx="2" class="rdt"/>
+      <text x="${x0+180}" y="24" class="rlab">Diastólica</text>
+      <line x1="${x0+310}" y1="20" x2="${x0+334}" y2="20" class="rp"/>
+      <circle cx="${x0+322}" cy="20" r="4" class="rpt"/>
+      <text x="${x0+340}" y="24" class="rlab">Pulso</text>`;
+
+  for(let v=60;v<=180;v+=20){
+    let y=Y(v);
+    s+=line(x0,y,x1,y,'rgrid')+`<text x="${x0-12}" y="${y+4}" text-anchor="end" class="rlab">${v}</text>`;
+  }
+  for(let v=40;v<=100;v+=10){
+    let y=Yp(v);
+    s+=`<text x="${x0-68}" y="${y+4}" text-anchor="end" class="rlab rpulse">${v}</text>`;
+  }
+  s+=line(x0,y0,x0,y1,'raxis')+line(x1,y0,x1,y1,'raxis')+line(x0,y1,x1,y1,'raxis');
+  s+=`<text x="82" y="${(y0+y1)/2}" transform="rotate(-90 82 ${(y0+y1)/2})" text-anchor="middle" class="raxis-title">mmHg</text>`;
+  s+=`<text x="30" y="${(y0+y1)/2}" transform="rotate(-90 30 ${(y0+y1)/2})" text-anchor="middle" class="raxis-title rpulse">bpm</text>`;
+
+  function path(key,yy){return a.map((r,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+yy(r[key]).toFixed(1)).join(' ')}
+  s+=`<path d="${path('sis',Y)}" class="rs"/><path d="${path('dia',Y)}" class="rd"/><path d="${path('pulso',Yp)}" class="rp"/>`;
+
+  a.forEach((r,i)=>{
+    let x=X(i),ys=Y(r.sis),yd=Y(r.dia),yp=Yp(r.pulso);
+    s+=`<circle cx="${x}" cy="${ys}" r="5" class="rst"/><text x="${x}" y="${ys-12}" text-anchor="middle" class="rval">${r.sis}</text>`;
+    s+=`<rect x="${x-5}" y="${yd-5}" width="10" height="10" rx="2" class="rdt"/><text x="${x}" y="${yd+20}" text-anchor="middle" class="rval">${r.dia}</text>`;
+    let pdy=Math.abs(yp-ys)<28?18:-12,pdx=(i%2===0)?-8:8;
+    s+=`<circle cx="${x}" cy="${yp}" r="5" class="rpt"/><text x="${x+pdx}" y="${yp+pdy}" text-anchor="${pdx<0?'end':'start'}" class="rval">${r.pulso}</text>`;
+    let parts=r.data.split('/').map(Number),label=parts.length===3?`${String(parts[0]).padStart(2,'0')}/${String(parts[1]).padStart(2,'0')}`:r.data;
+    s+=`<text x="${x}" y="${y1+30}" text-anchor="middle" class="rdate">${label}</text>`;
+  });
+  svg.innerHTML=s;
+}
+
+function gerarRelatorio(){
+  let pessoa=$('relatorioPessoa').value,ini=$('relatorioDataInicial').value,fim=$('relatorioDataFinal').value;
+  let a=data().filter(x=>
+    (!pessoa||x.nome===pessoa)&&(!ini||dataISO(x.data)>=ini)&&(!fim||dataISO(x.data)<=fim)
+  ).sort((a,b)=>(dataISO(a.data)+a.hora).localeCompare(dataISO(b.data)+b.hora));
+
+  $('reportContent').style.display='block';
+  if(!a.length){
+    $('reportSub').textContent='Não existem medições para os critérios selecionados.';
+    $('reportSummary').innerHTML='';$('reportBody').innerHTML='';$('reportFoot').innerHTML='';$('reportChartSvg').innerHTML='';
+    return;
+  }
+  let nome=pessoa||'Todas as pessoas';
+  let periodo=(ini||fim)?`Período: ${ini?ini.split('-').reverse().join('/'): '—'} a ${fim?fim.split('-').reverse().join('/'): '—'}`:'Todas as datas';
+  $('reportSub').textContent=`Nome: ${nome}  ·  ${periodo}  ·  Gerado em ${new Date().toLocaleString('pt-PT')}`;
+
+  const avg=k=>Math.round(a.reduce((s,r)=>s+Number(r[k]),0)/a.length);
+  const min=k=>Math.min(...a.map(r=>Number(r[k])));
+  const max=k=>Math.max(...a.map(r=>Number(r[k])));
+
+  $('reportSummary').innerHTML=`
+    <div class="report-box"><small>N.º de medições</small><strong>${a.length}</strong></div>
+    <div class="report-box"><small>Média tensão</small><strong>${avg('sis')}/${avg('dia')} mmHg</strong></div>
+    <div class="report-box"><small>Média pulso</small><strong>${avg('pulso')} bpm</strong></div>
+    <div class="report-box"><small>Intervalo sistólica</small><strong>${min('sis')}-${max('sis')} mmHg</strong></div>`;
+  desenharGraficoRelatorio(a);
+
+  $('reportBody').innerHTML=a.map(r=>`<tr>
+    <td>${r.data}</td><td>${r.hora}</td><td>${r.sis} mmHg</td><td>${r.dia} mmHg</td>
+    <td>${r.pulso} bpm</td><td>${r.braco||''}</td><td>${r.momento||''}</td><td>${esc(r.obs||'')}</td>
+  </tr>`).join('');
+
+  $('reportFoot').innerHTML=`<tr>
+    <td colspan="2">Médias</td><td>${avg('sis')} mmHg</td><td>${avg('dia')} mmHg</td>
+    <td>${avg('pulso')} bpm</td><td colspan="3"></td>
+  </tr>`;
+}
+function imprimirRelatorio(){
+  if(!$('reportContent').style.display||$('reportContent').style.display==='none'){
+    gerarRelatorio();
+  }
+  setTimeout(()=>window.print(),100);
+}
+
+setDefaults();renderPeople();preencherFiltroPessoa();preencherGraficoPessoa();preencherRelatorioPessoa();renderHistory();
+</script>
+
+<script>
+const DADOS_ACCESS_REAIS = [{"ID_Registo": 3, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "20/8/2026", "Hora": "12:42", "Sistolica": 120, "Diastolica": 80, "Pulso": 70, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": "Início_Medição"}, {"ID_Registo": 5, "ID_Pessoa": 2, "Nome": "São", "Data": "20/8/2026", "Hora": "12:45", "Sistolica": 108, "Diastolica": 71, "Pulso": 64, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": ""}, {"ID_Registo": 6, "ID_Pessoa": 2, "Nome": "São", "Data": "24/8/2026", "Hora": "10:26", "Sistolica": 114, "Diastolica": 72, "Pulso": 67, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": ""}, {"ID_Registo": 7, "ID_Pessoa": 2, "Nome": "São", "Data": "24/8/2026", "Hora": "12:45", "Sistolica": 114, "Diastolica": 72, "Pulso": 67, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": ""}, {"ID_Registo": 8, "ID_Pessoa": 2, "Nome": "São", "Data": "26/8/2026", "Hora": "20:16", "Sistolica": 115, "Diastolica": 69, "Pulso": 66, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 9, "ID_Pessoa": 2, "Nome": "São", "Data": "28/8/2026", "Hora": "20:24", "Sistolica": 109, "Diastolica": 73, "Pulso": 70, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": ""}, {"ID_Registo": 10, "ID_Pessoa": 2, "Nome": "São", "Data": "30/8/2026", "Hora": "21:10", "Sistolica": 109, "Diastolica": 71, "Pulso": 56, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": ""}, {"ID_Registo": 11, "ID_Pessoa": 2, "Nome": "São", "Data": "4/9/2026", "Hora": "21:55", "Sistolica": 96, "Diastolica": 70, "Pulso": 72, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 12, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "24/8/2026", "Hora": "10:28", "Sistolica": 133, "Diastolica": 84, "Pulso": 64, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 14, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "26/8/2026", "Hora": "20:14", "Sistolica": 148, "Diastolica": 91, "Pulso": 69, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 16, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "28/8/2026", "Hora": "20:22", "Sistolica": 140, "Diastolica": 90, "Pulso": 67, "Braco": "Esquerdo", "Momento": "Tarde", "Observacoes": ""}, {"ID_Registo": 17, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "30/8/2026", "Hora": "21:00", "Sistolica": 124, "Diastolica": 90, "Pulso": 74, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 18, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "1/9/2026", "Hora": "21:07", "Sistolica": 128, "Diastolica": 86, "Pulso": 65, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 19, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "4/9/2026", "Hora": "21:53", "Sistolica": 130, "Diastolica": 83, "Pulso": 64, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 20, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "6/9/2026", "Hora": "22:08", "Sistolica": 124, "Diastolica": 83, "Pulso": 58, "Braco": "Esquerdo", "Momento": "", "Observacoes": ""}, {"ID_Registo": 22, "ID_Pessoa": 2, "Nome": "São", "Data": "7/9/2026", "Hora": "09:31:45", "Sistolica": 97, "Diastolica": 65, "Pulso": 65, "Braco": "Direito", "Momento": "Manhã", "Observacoes": "Medição realizada imediatamente após se levantar"}, {"ID_Registo": 23, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "7/9/2026", "Hora": "09:57:46", "Sistolica": 153, "Diastolica": 91, "Pulso": 65, "Braco": "Direito", "Momento": "Manhã", "Observacoes": "Imediatamente após o café da manhã"}, {"ID_Registo": 24, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "8/9/2026", "Hora": "21:17:45", "Sistolica": 167, "Diastolica": 91, "Pulso": 73, "Braco": "Direito", "Momento": "Noite", "Observacoes": ""}, {"ID_Registo": 25, "ID_Pessoa": 2, "Nome": "São", "Data": "8/9/2026", "Hora": "21:20:20", "Sistolica": 98, "Diastolica": 69, "Pulso": 70, "Braco": "Direito", "Momento": "Noite", "Observacoes": ""}, {"ID_Registo": 26, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "9/9/2026", "Hora": "08:53:05", "Sistolica": 139, "Diastolica": 88, "Pulso": 60, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": "Antes do Pequeno almoço"}, {"ID_Registo": 27, "ID_Pessoa": 2, "Nome": "São", "Data": "9/9/2026", "Hora": "08:53:45", "Sistolica": 120, "Diastolica": 75, "Pulso": 61, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": "Antes do pequeno almoço"}, {"ID_Registo": 28, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "12/9/2026", "Hora": "22:13:23", "Sistolica": 137, "Diastolica": 82, "Pulso": 62, "Braco": "Direito", "Momento": "Noite", "Observacoes": ""}, {"ID_Registo": 29, "ID_Pessoa": 2, "Nome": "São", "Data": "12/9/2026", "Hora": "22:15:25", "Sistolica": 110, "Diastolica": 74, "Pulso": 67, "Braco": "Direito", "Momento": "Noite", "Observacoes": ""}, {"ID_Registo": 30, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "16/9/2026", "Hora": "00:42:45", "Sistolica": 128, "Diastolica": 76, "Pulso": 71, "Braco": "Esquerdo", "Momento": "Noite", "Observacoes": ""}, {"ID_Registo": 31, "ID_Pessoa": 2, "Nome": "São", "Data": "16/9/2026", "Hora": "11:06:23", "Sistolica": 102, "Diastolica": 69, "Pulso": 64, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": ""}, {"ID_Registo": 32, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "16/9/2026", "Hora": "11:09:37", "Sistolica": 146, "Diastolica": 92, "Pulso": 60, "Braco": "Direito", "Momento": "Manhã", "Observacoes": ""}, {"ID_Registo": 33, "ID_Pessoa": 1, "Nome": "Manuel", "Data": "17/9/2026", "Hora": "09:01:04", "Sistolica": 123, "Diastolica": 78, "Pulso": 56, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": "após pqueno Almoço"}, {"ID_Registo": 34, "ID_Pessoa": 2, "Nome": "São", "Data": "17/9/2026", "Hora": "09:03:08", "Sistolica": 115, "Diastolica": 74, "Pulso": 65, "Braco": "Esquerdo", "Momento": "Manhã", "Observacoes": "Após pequeno almoço"}];
+if (!localStorage.getItem('tensao_access_importado_v1')) {
+  localStorage.setItem('tensao_registos', JSON.stringify(DADOS_ACCESS_REAIS.map(x => ({
+    nome:x.Nome, data:x.Data, hora:x.Hora, sis:x.Sistolica, dia:x.Diastolica,
+    pulso:x.Pulso, braco:x.Braco, momento:x.Momento || 'Outro', obs:x.Observacoes || ''
+  }))));
+  localStorage.setItem('tensao_access_importado_v1','sim');
+}
+</script>
+</body></html>
