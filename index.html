@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#b71c1c">
-<meta name="theme-color" content="#b71c1c">
 <title>Tensão Arterial</title>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#1f2937}
@@ -526,6 +525,15 @@ if (!localStorage.getItem('tensao_access_importado_v1')) {
     pulso:x.Pulso, braco:x.Braco, momento:x.Momento || 'Outro', obs:x.Observacoes || ''
   }))));
   localStorage.setItem('tensao_access_importado_v1','sim');
+}
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js", {scope: "./"})
+      .then(() => console.log("Service Worker registado."))
+      .catch(err => console.error("Erro ao registar Service Worker:", err));
+  });
 }
 </script>
 </body></html>
